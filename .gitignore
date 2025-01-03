@@ -18,8 +18,11 @@
 *.pyo
 __pycache__/
 *.egg-info/
+<<<<<<< HEAD
 .venv
 
+=======
+>>>>>>> main
 
 # Игнорирование локальных конфигураций
 inventory/
@@ -34,6 +37,8 @@ inventory/*
 *.crt
 *.pub
 *.id_rsa
+id_rsa
+id_rsa.pub
 *.id_rsa.pub
 secrets.yml
 vault.yml
