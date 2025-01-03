@@ -1,0 +1,16 @@
+services:
+  nexus3:
+    container_name: nexus3 
+    image: sonatype/nexus3:3.70.1
+    restart: always
+    security_opt:
+      - no-new-privileges=true
+    volumes:
+      - "/home/dockeruser/cavise/nexus3/nexus-data:/nexus-data:rw"
+    ports:
+      - "127.0.0.1:8084:8081"
+    logging:
+            driver: "json-file"
+            options:
+                max-size: "300m"
+                max-file: "5"

@@ -1,0 +1,68 @@
+---
+- name: Deploy Infrastructure Components
+  hosts: target_ubuntu
+  become: true
+  vars_files:
+    - ./vars/main.yml
+    - ./secrets.yml
+
+  tasks:
+    - name: Ask if we should install base packages
+      ansible.builtin.pause:
+        prompt: "Do you want to install base packages? (yes/no)"
+      register: install_base_packages
+
+    - name: Ask if we should install rootless Docker
+      ansible.builtin.pause:
+        prompt: "Do you want to install rootless Docker? (yes/no)"
+      register: install_rootless_docker
+
+    - name: Ask if we should deploy GitLab
+      ansible.builtin.pause:
+        prompt: "Do you want to deploy GitLab? (yes/no)"
+      register: deploy_gitlab
+
+    - name: Ask if we should deploy Nexus
+      ansible.builtin.pause:
+        prompt: "Do you want to deploy Nexus? (yes/no)"
+      register: deploy_nexus
+
+    - name: Ask if we should deploy Nginx
+      ansible.builtin.pause:
+        prompt: "Do you want to deploy Nginx? (yes/no)"
+      register: deploy_nginx
+
+    - name: Ask if we should deploy Monitoring system
+      ansible.builtin.pause:
+        prompt: "Do you want to deploy Monitoring system? (yes/no)"
+      register: deploy_monitoring
+
+    - name: Run install-base-pckgs role if user agreed
+      ansible.builtin.include_role:
+        name: install-base-pckgs
+      when: install_base_packages.user_input == 'yes'
+
+    - name: Run rootless-docker role if user agreed
+      ansible.builtin.include_role:
+        name: rootless-docker
+      when: install_rootless_docker.user_input == 'yes'
+
+    - name: Run gitlab role if user agreed
+      ansible.builtin.include_role:
+        name: gitlab
+      when: deploy_gitlab.user_input == 'yes'
+
+    - name: Run nexus role if user agreed
+      ansible.builtin.include_role:
+        name: nexus
+      when: deploy_nexus.user_input == 'yes'
+
+    - name: Run nginx role if user agreed
+      ansible.builtin.include_role:
+        name: nginx
+      when: deploy_nginx.user_input == 'yes'
+
+    - name: Run monitoring role if user agreed
+      ansible.builtin.include_role:
+        name: monitoring
+      when: deploy_monitoring.user_input == 'yes'

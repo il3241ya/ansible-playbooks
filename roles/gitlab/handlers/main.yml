@@ -1,0 +1,6 @@
+---
+- name: Restart docker service using systemd --user
+  ansible.builtin.shell: |
+    systemctl --user restart docker
+  become: false
+  become_user: "{{ dockeruser }}"

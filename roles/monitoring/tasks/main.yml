@@ -1,0 +1,56 @@
+---
+- name: Deploy Monitoring System (Grafana + Prometheus)
+  block:
+
+  - name: Create directorie for Monitoring System and Docker services
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: "{{ dockeruser }}"
+      group: "{{ dockeruser }}"
+    loop:
+      - /home/{{ dockeruser }}/infr/monitoring/
+      - /home/{{ dockeruser }}/infr/monitoring/ssl
+    become: true
+
+  - name: Copy Docker Compose and Dockerfiles
+    ansible.builtin.copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: "{{ dockeruser }}"
+      group: "{{ dockeruser }}"
+      mode: '0755'
+    loop:
+      - { src: './files/docker-compose.yml', dest: "/home/{{ dockeruser }}/infr/monitoring" }
+      - { src: './files/.env', dest: "/home/{{ dockeruser }}/infr/monitoring" }
+      - { src: './files/prometheus.yml', dest: "/home/{{ dockeruser }}/infr/monitoring" }
+      - { src: './files/Dockerfile.grafana', dest: "/home/{{ dockeruser }}/infr/monitoring" }
+    become: true
+
+  - name: Copy certificates for GitLab and Nexus
+    ansible.builtin.copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: "{{ dockeruser }}"
+      group: "{{ dockeruser }}"
+      mode: '0755'
+    loop:
+      - { src: '{{ certs_dir }}/grafana_cert/grafana.crt', dest: "/home/{{ dockeruser }}/infr/monitoring/ssl" }
+      - { src: '{{ certs_dir }}/grafana_cert/grafana.key', dest: "/home/{{ dockeruser }}/infr/monitoring/ssl" }
+      - { src: '{{ certs_dir }}/prometheus_cert/prometheus.crt', dest: "/home/{{ dockeruser }}/infr/monitoring/ssl" }
+      - { src: '{{ certs_dir }}/prometheus_cert/prometheus.key', dest: "/home/{{ dockeruser }}/infr/monitoring/ssl" }
+    become: true
+
+  - name: Start Monitoring with Docker Compose
+    ansible.builtin.shell: |
+      docker compose up --build -d
+    args:
+      chdir: /home/{{ dockeruser }}/infr/monitoring
+    become: true
+    become_user: "{{ dockeruser }}"
+    environment:
+      PATH: "/home/{{ dockeruser }}/bin:$PATH"
+      XDG_RUNTIME_DIR: "/home/{{ dockeruser }}/.docker/run"
+      DOCKER_HOST: "unix:///run/user/{{ dockeruser_id  }}/docker.sock"
+  

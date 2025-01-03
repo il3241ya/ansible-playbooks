@@ -1,0 +1,5 @@
+---
+dockeruser: "dockeruser"
+dockeruser_id: 7777
+gitlab_config_dir: "/home/dockeruser/infr/gitlab/mounted/config"
+

@@ -1,0 +1,153 @@
+---
+- name: Block to install rootless Docker and related tasks
+  block:
+    - name: Update apt repository
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - dbus-user-session
+          - uidmap
+      become: true
+
+    - name: Ensure the group exists for the docker user
+      ansible.builtin.group:
+        name: "{{ dockeruser }}"
+        gid: "{{ dockeruser_id }}"
+      become: true
+
+    - name: Create a non-root user
+      ansible.builtin.user:
+        name: "{{ dockeruser }}"
+        state: present
+        shell: /bin/bash
+        password: "{{ user_password | password_hash('sha512') }}"
+        uid: "{{ dockeruser_id }}"
+        group: "{{ dockeruser }}"
+      become: true
+
+    - name: Download rootless Docker script
+      ansible.builtin.get_url:
+        url: https://get.docker.com/rootless
+        dest: "/home/{{ dockeruser }}/rootless_docker.sh"
+      become: true
+      become_user: "{{ dockeruser }}"
+
+    - name: Set ownership and permissions for the script
+      ansible.builtin.file:
+        path: "/home/{{ dockeruser }}/rootless_docker.sh"
+        owner: "{{ dockeruser }}"
+        group: "{{ dockeruser }}"
+        mode: "0755"
+      become: true
+
+    - name: Run rootless Docker install script
+      ansible.builtin.command:
+        cmd: "sh /home/{{ dockeruser }}/rootless_docker.sh"
+      become: true
+      become_user: "{{ dockeruser }}"
+      args:
+        creates: "/run/user/$(id -u)/docker.sock"
+
+    - name: Export environment variables for rootless Docker
+      ansible.builtin.lineinfile:
+        path: "/home/{{ dockeruser }}/.bashrc"
+        line: "{{ item }}"
+        insertafter: EOF
+      loop:
+        - 'export PATH="/home/{{ dockeruser }}/bin:$PATH"'
+        - 'export DOCKER_HOST="unix:///run/user/$(id -u)/docker.sock"'
+        - 'export XDG_RUNTIME_DIR="/run/user/$(id -u)"'
+        - 'export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"'
+      become: true
+      become_user: "{{ dockeruser }}"
+
+    - name: Run dockerd-rootless-setuptool.sh install
+      ansible.builtin.command:
+        cmd: "dockerd-rootless-setuptool.sh install"
+      become: true
+      become_user: "{{ dockeruser }}"
+      environment:
+        PATH: "/home/{{ dockeruser }}/bin:{{ ansible_env.PATH }}"
+        XDG_RUNTIME_DIR: "/home/{{ dockeruser }}/.docker/run"
+        DOCKER_HOST: "unix:///run/user/$(id -u)/docker.sock"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=${XDG_RUNTIME_DIR}/bus"
+
+    - name: Create directory for rootless docker service
+      ansible.builtin.file:
+        path: /home/{{ dockeruser }}/.config/systemd/user
+        state: directory
+        mode: '0755'
+        owner: "{{ dockeruser }}"
+        group: "{{ dockeruser }}"
+      become: true
+
+    - name: Copy a file from host to remote machine
+      ansible.builtin.copy:
+        src: ./files/docker.service
+        dest: /home/{{ dockeruser }}/.config/systemd/user/docker.service
+        owner: "{{ dockeruser }}"
+        group: "{{ dockeruser }}"
+        mode: '0755'
+      become: true
+
+    - name: Add network address pool to Docker configuration
+      ansible.builtin.copy:
+        content: |
+          {
+            "default-address-pools": [
+              {
+                "base": "10.10.0.0/16",
+                "size": 24
+              }
+            ]
+          }
+        dest: /home/dockeruser/.docker/config.json
+        owner: "{{ dockeruser }}"
+        group: "{{ dockeruser }}"
+        mode: '0644'
+      become: true
+
+    - name: Create a directory for Docker's key
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      become: true
+
+    - name: Download Docker's key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0744'
+      become: true
+
+    - name: Add Docker repository to sources list
+      ansible.builtin.shell: echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      become: true
+
+    - name: Update apt package index
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+
+    - name: Install Docker Compose
+      ansible.builtin.apt:
+        name:
+          - docker-compose-plugin
+        update_cache: true
+      become: true
+
+    - name: Enable linger for dockeruser
+      ansible.builtin.shell: loginctl enable-linger {{ dockeruser }}
+      become: true
+
+    - name: Notify handler to start rootless Docker
+      ansible.builtin.shell: echo "Docker and docker compose installation steps completed"
+      register: docker_install
+      changed_when: docker_install.stdout != ""
+      notify: Start rootless Docker service
+

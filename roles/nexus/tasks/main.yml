@@ -1,0 +1,34 @@
+---
+- name: Deploy Nexus
+  block:
+    - name: Create multiple directories for rootless docker service
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0777'
+        owner: "{{ dockeruser }}"
+        group: "{{ dockeruser }}"
+      loop:
+        - "{{ nexus_data_dir }}"
+      become: true
+
+    - name: Copy Docker Compose file from host to remote machine
+      ansible.builtin.copy:
+        src: "{{ docker_compose_file }}"
+        dest: "{{ nexus_compose_dir }}"
+        owner: "{{ dockeruser }}"
+        group: "{{ dockeruser }}"
+        mode: '0755'
+      become: true
+
+    - name: Start Docker Compose with docker-compose
+      ansible.builtin.shell: |
+        docker compose up --build -d
+      args:
+        chdir: "{{ nexus_compose_dir }}"
+      become: true
+      become_user: "{{ dockeruser }}"
+      environment:
+        PATH: "/home/{{ dockeruser }}/bin:$PATH"
+        XDG_RUNTIME_DIR: "/home/{{ dockeruser }}/.docker/run"
+        DOCKER_HOST: "unix:///run/user/7777/docker.sock"
