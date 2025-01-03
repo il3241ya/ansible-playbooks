@@ -1,0 +1,2 @@
+# It is necessary to create an .env file
+GITLAB_IP=ip

@@ -20,4 +20,4 @@ docker_compose_file: "./files/docker-compose.yml"
 gitlab_config_dir: "/home/dockeruser/infr/gitlab/mounted/config"
 
 #certs_dir: "PWD/certs"
-certs_dir: 
+certs_dir: /home/ilya/Projects/DevOps-templates/test-releases/ansible-playbooks/certs

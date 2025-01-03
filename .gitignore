@@ -18,11 +18,8 @@
 *.pyo
 __pycache__/
 *.egg-info/
-<<<<<<< HEAD
 .venv
 
-=======
->>>>>>> main
 
 # Игнорирование локальных конфигураций
 inventory/
