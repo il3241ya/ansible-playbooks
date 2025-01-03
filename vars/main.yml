@@ -19,5 +19,5 @@ docker_compose_file: "./files/docker-compose.yml"
 # Vars for GitLab
 gitlab_config_dir: "/home/dockeruser/infr/gitlab/mounted/config"
 
-#certs_dir: "PWD/certs"
-certs_dir: 
+#default: certs_dir: "PWD/certs"
+certs_dir: <path-to-certs-dir>

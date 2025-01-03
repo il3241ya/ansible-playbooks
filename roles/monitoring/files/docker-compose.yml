@@ -1,0 +1,67 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.0.0
+    container_name: prometheus
+    ports:
+      - "13443:9090"
+    environment:
+      - HOST_IP=${HOST_IP}
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./ssl/prometheus.crt:/etc/prometheus/cert.crt 
+      - ./ssl/prometheus.key:/etc/prometheus/cert.key
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      #- "--web.ssl-cert=/etc/prometheus/cert.crt"
+      #- "--web.ssl-key=/etc/prometheus/cert.key"
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - 9100:9100
+  
+  cadvisor:
+    image: google/cadvisor:v0.33.0
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /home/dockeruser/.local/share/docker:/var/lib/docker:ro
+    restart: always
+
+  grafana:
+    #image: grafana/grafana:11.3.0-security-01
+    build: 
+      context: .
+      dockerfile: Dockerfile.grafana
+    container_name: grafana
+    ports:
+      - "12443:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      #- GF_SERVER_HTTP_PORT=12443
+      #- GF_SERVER_PROTOCOL=https
+      #- GF_SERVER_CERT_FILE=/var/lib/grafana/ssl/cert.crt
+      #- GF_SERVER_CERT_KEY=/var/lib/grafana/ssl/cert.key
+    volumes:
+      - grafana-data:/var/lib/grafana
+      #- ./ssl/grafana.crt:/var/lib/grafana/ssl/cert.crt:rw
+      #- ./ssl/grafana.key:/var/lib/grafana/ssl/cert.key:rw
+
+volumes:
+  grafana-data:

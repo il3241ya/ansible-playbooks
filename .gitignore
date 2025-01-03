@@ -18,6 +18,8 @@
 *.pyo
 __pycache__/
 *.egg-info/
+.venv
+
 
 # Игнорирование локальных конфигураций
 inventory/
@@ -32,16 +34,14 @@ inventory/*
 *.crt
 *.pub
 *.id_rsa
+id_rsa
+id_rsa.pub
 *.id_rsa.pub
 secrets.yml
 vault.yml
 
 # Игнорирование временных данных, создаваемых ролями и коллекциями
-roles/*/defaults/*.yml
 roles/*/vars/*.yml
-roles/*/files/*
-roles/*/templates/*
-roles/*/handlers/*.yml
 collections/
 
 # Игнорирование сертификатов и ключей

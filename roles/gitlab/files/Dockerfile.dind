@@ -1,0 +1,56 @@
+FROM docker:27.3.1-dind
+
+
+ARG USER_ID=1000
+
+RUN apk update && apk add --no-cache iproute2 fuse-overlayfs libcap slirp4netns curl jq
+
+RUN mkdir /run/user && chmod 1777 /run/user \
+    && mkdir /run/user/${USER_ID} &&  chmod 1777 /run/user/${USER_ID} \
+    && chmod 1777 /tmp
+
+RUN set -eux; \
+  adduser -h /home/rootless -g 'Rootless' -D -u ${USER_ID} rootless; \
+  echo 'rootless:100000:65536' >> /etc/subuid; \
+  echo 'rootless:100000:65536' >> /etc/subgid
+
+RUN set -eux; \
+  \
+  apkArch="$(apk --print-arch)"; \
+  case "$apkArch" in \
+    'x86_64') \
+      url='https://download.docker.com/linux/static/stable/x86_64/docker-rootless-extras-27.1.1.tgz'; \
+      ;; \
+    'aarch64') \
+      url='https://download.docker.com/linux/static/stable/aarch64/docker-rootless-extras-27.1.1.tgz'; \
+      ;; \
+    *) echo >&2 "error: unsupported 'rootless.tgz' architecture ($apkArch)"; exit 1 ;; \
+  esac; \
+  \
+  wget -q -O 'rootless.tgz' "$url"; \
+  \
+  tar --extract \
+    --file rootless.tgz \
+    --strip-components 1 \
+    --directory /usr/local/bin/ \
+    'docker-rootless-extras/rootlesskit' \
+    'docker-rootless-extras/rootlesskit-docker-proxy' \
+    'docker-rootless-extras/vpnkit' \
+  ; \
+  rm rootless.tgz; \
+  \
+  rootlesskit --version; \
+  vpnkit --version
+
+RUN set -eux; \
+  mkdir -p /home/rootless/.local/share/docker; \
+  chown -R rootless:rootless /home/rootless/.local/share/docker
+VOLUME /home/rootless/.local/share/docker
+
+RUN setcap cap_setuid,cap_setgid+ep /usr/bin/newuidmap \
+    && setcap cap_setuid,cap_setgid+ep /usr/bin/newgidmap
+
+COPY dind/ca-certificates/rootCA.crt /etc/ssl/certs/rootCA.pem
+RUN update-ca-certificates
+
+USER rootless

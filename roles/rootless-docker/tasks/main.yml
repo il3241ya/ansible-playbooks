@@ -29,6 +29,30 @@
         group: "{{ dockeruser }}"
       become: true
 
+    # this is only necessary if you are using ubuntu > 23.04
+    - name: Add AppArmor profile for rootlesskit
+      ansible.builtin.copy:
+        content: |
+          # ref: https://ubuntu.com/blog/ubuntu-23-10-restricted-unprivileged-user-namespaces
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          /home/{{ dockeruser }}/bin/rootlesskit flags=(unconfined) {
+              userns,
+
+              # Site-specific additions and overrides. See local/README for details.
+              include if exists <local/home.dockeruser.bin.rootlesskit>
+          }
+        dest: "/etc/apparmor.d/home.dockeruser.bin.rootlesskit"
+        mode: '0644'
+      become: true
+
+    - name: Restart apparmor service to apply changes
+      ansible.builtin.systemd:
+        name: apparmor
+        state: restarted
+      become: true
+
     - name: Download rootless Docker script
       ansible.builtin.get_url:
         url: https://get.docker.com/rootless
@@ -148,6 +172,6 @@
     - name: Notify handler to start rootless Docker
       ansible.builtin.shell: echo "Docker and docker compose installation steps completed"
       register: docker_install
-      changed_when: docker_install.stdout != ""
+      changed_when: true
       notify: Start rootless Docker service
 

@@ -1,0 +1,13 @@
+FROM grafana/grafana:11.3.0-security-01
+
+USER root
+
+RUN addgroup -g 1000 grafana_rootless && \
+    adduser -u 1000 -G grafana_rootless -D grafana_rootless
+
+RUN chown grafana_rootless:grafana_rootless -R /usr/share/grafana && \
+    chown grafana_rootless:grafana_rootless -R /var/lib/grafana && \
+    chown grafana_rootless:grafana_rootless -R /var/log/grafana && \
+    chown grafana_rootless:grafana_rootless -R /etc/grafana/
+
+USER grafana_rootless

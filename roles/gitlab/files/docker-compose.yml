@@ -1,0 +1,121 @@
+services:
+    gitlab:
+        container_name: gitlab
+        build: 
+            context: .
+            dockerfile: Dockerfile.gitlab
+        hostname: ${GITLAB_IP}
+        restart: always
+        ports:
+            - "9443:443"
+            - "8822:22"
+        volumes:
+            - /home/dockeruser/infr/gitlab/mounted/config:/etc/gitlab
+            - /home/dockeruser/infr/gitlab/mounted/logs:/var/opt/gitlab
+            - /home/dockeruser/infr/gitlab/mounted/data:/var/log/gitlab
+        networks:
+            - gitlab_net
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "300m"
+                max-file: "5"
+
+
+    dind:
+        container_name: gitlab-dind
+        build: 
+            context: .
+            dockerfile: Dockerfile.dind
+        restart: always
+        privileged: true
+        environment:
+            DOCKER_TLS_CERTDIR: ""
+            DOCKER_ROOTLESS_ROOTLESSKIT_PORT_DRIVER: "slirp4netns"
+            DOCKER_ROOTLESS_ROOTLESSKIT_NET: "slirp4netns"
+            DOCKER_ROOTLESS_ROOTLESSKIT_MTU: "65520"
+            DOCKERD_ROOTLESS_ROOTLESSKIT_NET: "slirp4netns"
+            DOCKERD_ROOTLESS_ROOTLESSKIT_PORT_DRIVER: "slirp4netns"
+            DOCKERD_ROOTLESS_ROOTLESSKIT_MTU: "65520"
+        ports:
+            - "2375:2375"
+        command:
+            - --storage-driver=overlay2
+        volumes:
+            - /home/dockeruser/infr/gitlab/dind/data/dind/docker:/var/lib/docker
+            - /home/dockeruser/infr/gitlab/dind/container-data:/tmp/container-data
+        networks:
+            - gitlab_net
+        depends_on:
+            - gitlab
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "300m"
+                max-file: "5"
+
+    gitlab-runner:
+        user: gitlab-runner
+        container_name: gitlab-runner
+        image: gitlab/gitlab-runner:alpine3.19
+        restart: always
+        environment:
+            - DOCKER_HOST=tcp://172.18.0.2:2375
+        volumes:
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/etc/gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/home/gitlab-runner/.gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/gitlab_runner/data/runner/cache:/cache
+            - /home/dockeruser/infr/gitlab/mounted/config/ssl:/etc/gitlab-runner/certs 
+            - /run/user/7777/docker.sock:/run/user/1000/docker.sock
+        networks:
+            - gitlab_net
+        depends_on:
+            - gitlab
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "300m"
+                max-file: "5"
+
+    register-runner:
+        user: gitlab-runner
+        container_name: gitlab-register-runner
+        image: gitlab/gitlab-runner:alpine3.19
+        restart: "no"
+        environment:
+            - REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
+            - CI_SERVER_URL=https://${GITLAB_IP}:9443
+        command:
+            - register
+            - --non-interactive
+            - --locked=false
+            - --name=${RUNNER_NAME}
+            - --executor=docker
+            # Url до своего gitlab сервера, тут он у нас в одной сети
+            - --url=https://${GITLAB_IP}:9443
+            - --clone-url=https://${GITLAB_IP}:9443
+            - --docker-image=${NEXUS_IP}:10445/test/my-dindrootless:27.1.1
+            - --docker-volumes=/run/user/1000/docker.sock:/run/user/1000/docker.sock
+            - --docker-volumes=/tmp/container-data:/tmp/container-data
+            # Чтобы контейнре мог иметь сетевой доступ к контейнеру с gitlab
+            - --docker-network-mode=host
+            - --tls-ca-file=/etc/gitlab-runner/certs/ca.crt
+        volumes:
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/etc/gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/home/gitlab-runner/.gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/dind/data/dind/docker:/var/lib/docker
+            - /home/dockeruser/infr/gitlab/mounted/config/ssl:/etc/gitlab-runner/certs
+            - /home/dockeruser/infr/gitlab/mounted/config/ssl:/usr/local/share/ca-certificates
+        networks:
+            - gitlab_net
+        depends_on:
+            - dind
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "300m"
+                max-file: "5"
+
+networks:
+    gitlab_net:
+        name: gitlab_net

@@ -1,0 +1,6 @@
+---
+dockeruser: "dockeruser"
+dockeruser_id: 7777
+nexus_data_dir: "/home/{{ dockeruser }}/infr/nexus3/nexus-data"
+nexus_compose_dir: "/home/{{ dockeruser }}/infr/nexus3"
+docker_compose_file: "./files/docker-compose.yml"

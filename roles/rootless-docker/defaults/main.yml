@@ -1,0 +1,10 @@
+---
+dockeruser: "dockeruser"
+
+docker_script_url: "https://get.docker.com/rootless"
+
+docker_env_vars:
+  - 'export PATH="/home/{{ dockeruser }}/bin:$PATH"'
+  - 'export DOCKER_HOST="unix:///run/user/$(id -u)/docker.sock"'
+  - 'export XDG_RUNTIME_DIR="/run/user/$(id -u)"'
+  - 'export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"'
