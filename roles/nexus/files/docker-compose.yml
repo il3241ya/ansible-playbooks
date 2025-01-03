@@ -6,7 +6,7 @@ services:
     security_opt:
       - no-new-privileges=true
     volumes:
-      - "/home/dockeruser/cavise/nexus3/nexus-data:/nexus-data:rw"
+      - "/home/dockeruser/infr/nexus3/nexus-data:/nexus-data:rw"
     ports:
       - "127.0.0.1:8084:8081"
     logging:

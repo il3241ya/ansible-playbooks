@@ -10,9 +10,9 @@ services:
             - "9443:443"
             - "8822:22"
         volumes:
-            - /home/dockeruser/cavise/gitlab/mounted/config:/etc/gitlab
-            - /home/dockeruser/cavise/gitlab/mounted/logs:/var/opt/gitlab
-            - /home/dockeruser/cavise/gitlab/mounted/data:/var/log/gitlab
+            - /home/dockeruser/infr/gitlab/mounted/config:/etc/gitlab
+            - /home/dockeruser/infr/gitlab/mounted/logs:/var/opt/gitlab
+            - /home/dockeruser/infr/gitlab/mounted/data:/var/log/gitlab
         networks:
             - gitlab_net
         logging:
@@ -42,8 +42,8 @@ services:
         command:
             - --storage-driver=overlay2
         volumes:
-            - /home/dockeruser/cavise/gitlab/dind/data/dind/docker:/var/lib/docker
-            - /home/dockeruser/cavise/gitlab/dind/container-data:/tmp/container-data
+            - /home/dockeruser/infr/gitlab/dind/data/dind/docker:/var/lib/docker
+            - /home/dockeruser/infr/gitlab/dind/container-data:/tmp/container-data
         networks:
             - gitlab_net
         depends_on:
@@ -62,10 +62,10 @@ services:
         environment:
             - DOCKER_HOST=tcp://172.18.0.2:2375
         volumes:
-            - /home/dockeruser/cavise/gitlab/gitlab_runner/config:/etc/gitlab-runner:z
-            - /home/dockeruser/cavise/gitlab/gitlab_runner/config:/home/gitlab-runner/.gitlab-runner:z
-            - /home/dockeruser/cavise/gitlab/gitlab_runner/data/runner/cache:/cache
-            - /home/dockeruser/cavise/gitlab/mounted/config/ssl:/etc/gitlab-runner/certs 
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/etc/gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/home/gitlab-runner/.gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/gitlab_runner/data/runner/cache:/cache
+            - /home/dockeruser/infr/gitlab/mounted/config/ssl:/etc/gitlab-runner/certs 
             - /run/user/7777/docker.sock:/run/user/1000/docker.sock
         networks:
             - gitlab_net
@@ -101,11 +101,11 @@ services:
             - --docker-network-mode=host
             - --tls-ca-file=/etc/gitlab-runner/certs/ca.crt
         volumes:
-            - /home/dockeruser/cavise/gitlab/gitlab_runner/config:/etc/gitlab-runner:z
-            - /home/dockeruser/cavise/gitlab/gitlab_runner/config:/home/gitlab-runner/.gitlab-runner:z
-            - /home/dockeruser/cavise/gitlab/dind/data/dind/docker:/var/lib/docker
-            - /home/dockeruser/cavise/gitlab/mounted/config/ssl:/etc/gitlab-runner/certs
-            - /home/dockeruser/cavise/gitlab/mounted/config/ssl:/usr/local/share/ca-certificates
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/etc/gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/gitlab_runner/config:/home/gitlab-runner/.gitlab-runner:z
+            - /home/dockeruser/infr/gitlab/dind/data/dind/docker:/var/lib/docker
+            - /home/dockeruser/infr/gitlab/mounted/config/ssl:/etc/gitlab-runner/certs
+            - /home/dockeruser/infr/gitlab/mounted/config/ssl:/usr/local/share/ca-certificates
         networks:
             - gitlab_net
         depends_on:
