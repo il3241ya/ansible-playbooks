@@ -1,0 +1,71 @@
+---
+- name: Deploy GitLab
+  block:
+
+  - name: Create directories for GitLab and Docker services
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+      owner: "{{ dockeruser }}"
+      group: "{{ dockeruser }}"
+    loop:
+      - /home/{{ dockeruser }}/infr/gitlab/mounted/config
+      - /home/{{ dockeruser }}/infr/gitlab/mounted/data
+      - /home/{{ dockeruser }}/infr/gitlab/mounted/logs
+      - /home/{{ dockeruser }}/infr/gitlab/mounted/config/ssl
+      - /home/{{ dockeruser }}/infr/gitlab/dind/data/dind/docker
+      - /home/{{ dockeruser }}/infr/gitlab/dind/container-data
+      - /home/{{ dockeruser }}/infr/gitlab/dind/ca-certificates
+      - /home/{{ dockeruser }}/infr/gitlab/gitlab_runner/config
+    become: true
+
+  - name: Copy Docker Compose and Dockerfiles
+    ansible.builtin.copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: "{{ dockeruser }}"
+      group: "{{ dockeruser }}"
+      mode: '0755'
+    loop:
+      - { src: './files/docker-compose.yml', dest: "/home/{{ dockeruser }}/infr/gitlab" }
+      - { src: './files/.env', dest: "/home/{{ dockeruser }}/infr/gitlab" }
+      - { src: './files/Dockerfile.dind', dest: "/home/{{ dockeruser }}/infr/gitlab" }
+      - { src: './files/Dockerfile.gitlab', dest: "/home/{{ dockeruser }}/infr/gitlab" }
+    become: true
+
+  - name: Copy certificates for GitLab and Nexus
+    ansible.builtin.copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: "{{ dockeruser }}"
+      group: "{{ dockeruser }}"
+      mode: '0755'
+    loop:
+      - { src: '{{ certs_dir }}/rootCA.crt', dest: "/home/{{ dockeruser }}/infr/gitlab/dind/ca-certificates/" }
+      - { src: '{{ certs_dir }}/rootCA.crt', dest: "/home/{{ dockeruser }}/infr/gitlab/mounted/config/ssl/ca.crt" }
+      - { src: '{{ certs_dir }}/gitlab_cert/gitlab.crt', dest: "/home/{{ dockeruser }}/infr/gitlab/mounted/config/ssl" }
+      - { src: '{{ certs_dir }}/gitlab_cert/gitlab.key', dest: "/home/{{ dockeruser }}/infr/gitlab/mounted/config/ssl" }
+      - { src: '{{ certs_dir }}/nexus_cert/nexus.crt', dest: "/home/{{ dockeruser }}/infr/gitlab/mounted/config/ssl" }
+      - { src: '{{ certs_dir }}/nexus_cert/nexus.key', dest: "/home/{{ dockeruser }}/infr/gitlab/mounted/config/ssl" }
+    become: true
+
+  - name: Configure GitLab
+    ansible.builtin.template:
+      src: gitlab.rb.j2
+      dest: /home/{{ dockeruser }}/infr/gitlab/mounted/config/gitlab.rb
+      owner: "{{ dockeruser }}"
+      group: "{{ dockeruser }}"
+    become: true
+
+  - name: Start GitLab with Docker Compose
+    ansible.builtin.shell: |
+      docker compose up --build -d
+    args:
+      chdir: /home/{{ dockeruser }}/infr/gitlab
+    become: true
+    become_user: "{{ dockeruser }}"
+    environment:
+      PATH: "/home/{{ dockeruser }}/bin:$PATH"
+      XDG_RUNTIME_DIR: "/home/{{ dockeruser }}/.docker/run"
+      DOCKER_HOST: "unix:///run/user/{{ dockeruser_id  }}/docker.sock"

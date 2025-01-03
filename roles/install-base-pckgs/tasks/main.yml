@@ -1,0 +1,11 @@
+---
+- name: Update apt repository
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+  become: true

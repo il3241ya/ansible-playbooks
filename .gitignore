@@ -1,0 +1,64 @@
+# Игнорирование временных файлов и метаданных редакторов
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
+*.rej
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Игнорирование файлов и папок, создаваемых во время выполнения
+*.retry
+*.vault_pass
+*.secrets
+*.pyc
+*.pyo
+__pycache__/
+*.egg-info/
+
+# Игнорирование локальных конфигураций
+inventory/
+inventory.yml
+inventory.ini
+inventory/*
+!inventory/sample_inventory.yml  # Если нужно оставить пример
+
+# Игнорирование SSH-ключей и конфиденциальных данных
+*.pem
+*.key
+*.crt
+*.pub
+*.id_rsa
+*.id_rsa.pub
+secrets.yml
+vault.yml
+
+# Игнорирование временных данных, создаваемых ролями и коллекциями
+roles/*/defaults/*.yml
+roles/*/vars/*.yml
+roles/*/files/*
+roles/*/templates/*
+roles/*/handlers/*.yml
+collections/
+
+# Игнорирование сертификатов и ключей
+certs/
+
+# Docker-артефакты
+docker-compose.override.yml
+*.env
+*.tar
+*.tar.gz
+
+# Игнорирование временных файлов
+Thumbs.db
+~$*
+
+# Исключение для статических примеров
+!roles/*/files/example_*
+
+# Исключение для тестов (если не нужно загружать их в репозиторий)
+roles/*/tests/

@@ -1,0 +1,23 @@
+# Rootless docker user
+dockeruser: "dockeruser"
+dockeruser_id: 7777
+
+# Vars for rootless docker
+docker_script_url: "https://get.docker.com/rootless"
+
+docker_env_vars:
+  - 'export PATH="/home/{{ dockeruser }}/bin:$PATH"'
+  - 'export DOCKER_HOST="unix:///run/user/$(id -u)/docker.sock"'
+  - 'export XDG_RUNTIME_DIR="/run/user/$(id -u)"'
+  - 'export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"'
+
+# Vars for Nexus
+nexus_data_dir: "/home/{{ dockeruser }}/infr/nexus3/nexus-data"
+nexus_compose_dir: "/home/{{ dockeruser }}/infr/nexus3"
+docker_compose_file: "./files/docker-compose.yml"
+
+# Vars for GitLab
+gitlab_config_dir: "/home/dockeruser/infr/gitlab/mounted/config"
+
+#certs_dir: "PWD/certs"
+certs_dir: 

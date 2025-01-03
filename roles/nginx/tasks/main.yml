@@ -1,0 +1,51 @@
+---
+- name: Deploy Nginx
+  block:
+
+  - name: Update apt repository
+    ansible.builtin.apt:
+      update_cache: true
+    become: true
+
+  - name: Install required packages
+    ansible.builtin.apt:
+      name:
+        - nginx
+    become: true
+
+  - name: Ensure the group exists for the docker user
+    ansible.builtin.group:
+      name: nginx
+    become: true
+
+  - name: Create a non-root user
+    ansible.builtin.user:
+      name: nginx
+      state: present
+      shell: /usr/sbin/nologin
+    become: true
+
+  - name: Copy Docker Compose and Dockerfiles
+    ansible.builtin.copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: '0755'
+    loop:
+      - { src: './files/nginx/conf.d', dest: "/etc/nginx" }
+      - { src: './files/nginx/nginx.conf', dest: "/etc/nginx" }
+      - { src: './files/nginx/mimi.types', dest: "/etc/nginx" }
+    become: true
+  
+  - name: Copy certificates for nginx and Nexus
+    ansible.builtin.copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: '0600'
+    loop:
+      - { src: '{{ certs_dir }}/nexus_cert/nexus.crt', dest: "/etc/nginx/ssl/" }
+      - { src: '{{ certs_dir }}/nexus_cert/nexus.key', dest: "/etc/nginx/ssl/" }
+      - { src: '{{ certs_dir }}/sonarqube_cert/sonarqube.crt', dest: "/etc/nginx/ssl/" }
+      - { src: '{{ certs_dir }}/sonarqube_cert/sonarqube.key', dest: "/etc/nginx/ssl/" }
+    become: true
+    notify:
+      - Restart nginx
